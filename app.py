@@ -51,58 +51,50 @@ wait_ev = (
     wait_recur_untreatable * qol_wait_recur_untreatable
 ) / 100
 
-results = pd.DataFrame({
-    'Strategy': ['Immediate Surgery', 'Watch and Monitor'],
-    'Expected Value': [surgery_ev, wait_ev]
-})
+st.header("Expected Values")
+st.markdown(f"**Immediate Surgery:** Expected Value = {surgery_ev:.1f}")
+st.markdown(f"**Watchful Waiting:** Expected Value = {wait_ev:.1f}")
 
-col1, col2 = st.columns([1, 1])
+st.header("Decision Tree")
+dot = graphviz.Digraph(format='png')
+dot.attr(rankdir='LR', fontsize='10', fontname='Helvetica')
+dot.attr('node', shape='box', style='filled', fontname='Helvetica')
 
-with col1:
-    st.header("Expected Value Comparison")
-    st.bar_chart(results.set_index('Strategy'))
+dot.node("Start", "Decision: Surgery vs Wait", fillcolor="lightblue")
+dot.node("Surgery", f"Immediate Surgery\nEV: {surgery_ev:.1f}", fillcolor="lightgrey")
+dot.node("Wait", f"Watchful Waiting\nEV: {wait_ev:.1f}", fillcolor="lightgrey")
+dot.edge("Start", "Surgery")
+dot.edge("Start", "Wait")
 
-with col2:
-    st.header("Decision Tree")
-    dot = graphviz.Digraph(format='png')
-    dot.attr(rankdir='LR', fontsize='10', fontname='Helvetica')
-    dot.attr('node', shape='box', style='filled', fontname='Helvetica')
+def qol_color(q):
+    if q >= 75:
+        return "palegreen"
+    elif q >= 40:
+        return "khaki"
+    else:
+        return "lightcoral"
 
-    dot.node("Start", "Decision: Surgery vs Wait", fillcolor="lightblue")
-    dot.node("Surgery", f"Immediate Surgery\nEV: {surgery_ev:.1f}", fillcolor="lightgrey")
-    dot.node("Wait", f"Watchful Waiting\nEV: {wait_ev:.1f}", fillcolor="lightgrey")
-    dot.edge("Start", "Surgery")
-    dot.edge("Start", "Wait")
+surgery_outcomes = [
+    ("Surg_Cured", f"Cured\n{surg_cure}%, QoL {qol_surg_cure}", qol_color(qol_surg_cure)),
+    ("Surg_Treatable", f"Treatable Recurrence\n{surg_recur_treatable}%, QoL {qol_surg_recur_treatable}", qol_color(qol_surg_recur_treatable)),
+    ("Surg_Untreatable", f"Untreatable\n{surg_recur_untreatable}%, QoL {qol_surg_recur_untreatable}", qol_color(qol_surg_recur_untreatable))
+]
 
-    def qol_color(q):
-        if q >= 75:
-            return "palegreen"
-        elif q >= 40:
-            return "khaki"
-        else:
-            return "lightcoral"
+wait_outcomes = [
+    ("Wait_NoRecur", f"No Recurrence\n{wait_no_recur}%, QoL {qol_wait_no_recur}", qol_color(qol_wait_no_recur)),
+    ("Wait_Treatable", f"Treatable Recurrence\n{wait_recur_treatable}%, QoL {qol_wait_recur_treatable}", qol_color(qol_wait_recur_treatable)),
+    ("Wait_Untreatable", f"Untreatable\n{wait_recur_untreatable}%, QoL {qol_wait_recur_untreatable}", qol_color(qol_wait_recur_untreatable))
+]
 
-    surgery_outcomes = [
-        ("Surg_Cured", f"Cured\n{surg_cure}%, QoL {qol_surg_cure}", qol_color(qol_surg_cure)),
-        ("Surg_Treatable", f"Treatable Recurrence\n{surg_recur_treatable}%, QoL {qol_surg_recur_treatable}", qol_color(qol_surg_recur_treatable)),
-        ("Surg_Untreatable", f"Untreatable\n{surg_recur_untreatable}%, QoL {qol_surg_recur_untreatable}", qol_color(qol_surg_recur_untreatable))
-    ]
+for node_id, label, color in surgery_outcomes:
+    dot.node(node_id, label, fillcolor=color)
+    dot.edge("Surgery", node_id)
 
-    wait_outcomes = [
-        ("Wait_NoRecur", f"No Recurrence\n{wait_no_recur}%, QoL {qol_wait_no_recur}", qol_color(qol_wait_no_recur)),
-        ("Wait_Treatable", f"Treatable Recurrence\n{wait_recur_treatable}%, QoL {qol_wait_recur_treatable}", qol_color(qol_wait_recur_treatable)),
-        ("Wait_Untreatable", f"Untreatable\n{wait_recur_untreatable}%, QoL {qol_wait_recur_untreatable}", qol_color(qol_wait_recur_untreatable))
-    ]
+for node_id, label, color in wait_outcomes:
+    dot.node(node_id, label, fillcolor=color)
+    dot.edge("Wait", node_id)
 
-    for node_id, label, color in surgery_outcomes:
-        dot.node(node_id, label, fillcolor=color)
-        dot.edge("Surgery", node_id)
-
-    for node_id, label, color in wait_outcomes:
-        dot.node(node_id, label, fillcolor=color)
-        dot.edge("Wait", node_id)
-
-    st.graphviz_chart(dot)
+st.graphviz_chart(dot)
 
 st.markdown("""
 ### Interpretation:
